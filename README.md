@@ -222,3 +222,12 @@ $status = [
 
 API umożliwia sprawdzenie szczegółów dotyczących zaplanowanej lub zrealizowanej wysyłki. 
 
+
+## Testy
+
+```bash
+composer install
+composer test
+```
+
+Skrypt do ręcznego testowania z prawdziwym API: `examples/live.php` (dane dostępowe w `examples/.env`, wzór w `examples/.env.example`).
