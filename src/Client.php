@@ -6,9 +6,9 @@ use Carbon\Carbon;
 use DOMDocument;
 use SMSPLANET\PHP\Client\Exceptions\InvalidParameterException;
 use SMSPLANET\PHP\Client\Exceptions\MissingParameterException;
+use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Psr7\MimeType;
 use SMSPLANET\PHP\Client\Exceptions\RequestException;
-
-use function GuzzleHttp\Psr7\mimetype_from_filename;
 
 class Client
 {
@@ -16,7 +16,7 @@ class Client
 
     protected const REQUIRED_PARAMS = ['from', 'msg', 'to'];
 
-    /** @var \GuzzleHttp\Client */
+    /** @var ClientInterface */
     protected $client;
 
     /** @var array Credentials data */
@@ -29,12 +29,13 @@ class Client
      * Client constructor.
      *
      * @param array $credentials
+     * @param ClientInterface|null $httpClient Custom HTTP client (e.g. for testing), configured with the API base URI
      */
-    public function __construct(array $credentials)
+    public function __construct(array $credentials, ?ClientInterface $httpClient = null)
     {
         $this->credentials = $credentials;
 
-        $this->client = new \GuzzleHttp\Client([
+        $this->client = $httpClient ?? new \GuzzleHttp\Client([
             'base_uri' => self::API_URL,
             'timeout' => 30
         ]);
@@ -61,7 +62,7 @@ class Client
             'to' => $args['to'],
         ]);
 
-        $response = $this->client->get('send', [
+        $response = $this->client->request('GET', 'send', [
             'query' => $query
         ]);
 
@@ -91,7 +92,7 @@ class Client
 
         $body = $this->arrayToXml($dataToParse, '<data/>');
 
-        $response = $this->client->post('', [
+        $response = $this->client->request('POST', '', [
             'form_params' => [
                 'xmldata' => $this->setToElementsToXml($body)
             ]
@@ -157,7 +158,7 @@ class Client
                 $link->value = $attachment;
 
                 $att->appendChild($mimetype = $dom->createAttribute('mimetype'));
-                $mimetype->value = mimetype_from_filename($attachment);
+                $mimetype->value = MimeType::fromFilename($attachment);
             }
         }
 
@@ -167,7 +168,7 @@ class Client
 
         $body = $dom->saveXML();
 
-        $response = $this->client->post('', [
+        $response = $this->client->request('POST', '', [
             'form_params' => [
                 'xmldata' => $this->setToElementsToXml($body)
             ]
@@ -203,7 +204,7 @@ class Client
      */
     public function getSenderFields($product = 'SMS')
     {
-        $response = $this->client->post('senderFields', [
+        $response = $this->client->request('POST', 'senderFields', [
             'form_params' => [
                 'key' => $this->credentials['key'],
                 'password' => $this->credentials['password'],
@@ -212,7 +213,7 @@ class Client
         ]);
 
         $content = $response->getBody()->getContents();
-        return \GuzzleHttp\json_decode($content);
+        return json_decode($content, false, 512, JSON_THROW_ON_ERROR);
     }
 
     /**
@@ -223,7 +224,7 @@ class Client
      */
     public function getBalance($product = 'SMS')
     {
-        $response = $this->client->post('getBalance', [
+        $response = $this->client->request('POST', 'getBalance', [
             'form_params' => [
                 'key' => $this->credentials['key'],
                 'password' => $this->credentials['password'],
@@ -244,7 +245,7 @@ class Client
      */
     public function cancelMessage($message_id)
     {
-        $response = $this->client->post('cancelMessage', [
+        $response = $this->client->request('POST', 'cancelMessage', [
             'form_params' => [
                 'key' => $this->credentials['key'],
                 'password' => $this->credentials['password'],
@@ -265,7 +266,7 @@ class Client
      */
     public function getMessageStatus($message_id): array
     {
-        $response = $this->client->post('getMessageStatus', [
+        $response = $this->client->request('POST', 'getMessageStatus', [
             'form_params' => [
                 'key' => $this->credentials['key'],
                 'password' => $this->credentials['password'],

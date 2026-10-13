@@ -5,7 +5,7 @@ require __DIR__ . '/../vendor/autoload.php';
 use Dotenv\Dotenv;
 use SMSPLANET\PHP\Client;
 
-$dotenv = Dotenv::create(__DIR__);
+$dotenv = Dotenv::createUnsafeImmutable(__DIR__);
 $dotenv->load();
 
 $client = new Client([
